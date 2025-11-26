@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 
+	"github.com/tenteedee/mini-uber/shared/types"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -19,4 +20,5 @@ type TripRepository interface {
 
 type TripService interface {
 	CreateTrip(ctx context.Context, fare *RideFareModel) (*TripModel, error)
+	GetRoute(ctx context.Context, pickup *types.Coordinate, destination *types.Coordinate) (*types.OsrmApiResponse, error)
 }

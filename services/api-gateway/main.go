@@ -1,8 +1,13 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/tenteedee/mini-uber/shared/env"
 )
@@ -23,8 +28,26 @@ func main() {
 		Handler: mux,
 	}
 
-	if err := server.ListenAndServe(); err != nil {
-		log.Printf("Failed to start server: %v", err)
-	}
+	serverError := make(chan error, 1)
+	go func() {
+		log.Printf("HTTP server listening on %s", httpAddr)
+		serverError <- server.ListenAndServe()
 
+	}()
+
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
+
+	select {
+	case err := <-serverError:
+		log.Fatalf("could not start server: %v", err)
+	case sig := <-shutdown:
+		log.Printf("starting shutdown: %v", sig)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := server.Shutdown(ctx); err != nil {
+			log.Fatalf("could not shutdown server: %v", err)
+			server.Close()
+		}
+	}
 }
