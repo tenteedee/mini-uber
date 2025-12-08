@@ -3,26 +3,53 @@ package main
 import (
 	"context"
 	"log"
+	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
-	"github.com/tenteedee/mini-uber/services/trip-service/internal/domain"
+	"github.com/tenteedee/mini-uber/services/trip-service/internal/infrastructure/grpc"
 	"github.com/tenteedee/mini-uber/services/trip-service/internal/infrastructure/repository"
 	"github.com/tenteedee/mini-uber/services/trip-service/internal/service"
+	grpcserver "google.golang.org/grpc"
 )
 
-func main() {
-	ctx := context.Background()
+var GrpcAddr = ":9093"
 
+func main() {
 	inmemRepo := repository.NewInmemRepository()
 	service := service.NewService(inmemRepo)
 
-	fare := &domain.RideFareModel{
-		UserId: "12",
-	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	trip, err := service.CreateTrip(ctx, fare)
+	go func() {
+		signalChan := make(chan os.Signal, 1)
+		signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+		<-signalChan
+		cancel()
+	}()
+
+	listener, err := net.Listen("tcp", GrpcAddr)
 	if err != nil {
-		log.Println(err)
+		log.Fatalf("failed to listen: %v", err)
 	}
+	grpcServer := grpcserver.NewServer()
 
-	log.Println(trip)
+	// initialize grpc server implementation
+	grpc.NewgRPCHandler(grpcServer, service)
+
+	log.Printf("starting Trip gRPC server on %s", listener.Addr().String())
+
+	go func() {
+		if err := grpcServer.Serve(listener); err != nil {
+			log.Printf("failed to serve gRPC server: %v", err)
+			cancel()
+		}
+	}()
+
+	<-ctx.Done()
+	log.Println("shutting down Trip gRPC server")
+	grpcServer.GracefulStop()
+
 }

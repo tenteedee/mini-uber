@@ -60,6 +60,11 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
     longitude: 105.83421353030694,
   };
 
+  // const location = {
+  //   latitude: 37.7749,
+  //   longitude: -122.4194,
+  // };
+
   const {
     drivers,
     error,
@@ -90,7 +95,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
       console.log(data);
 
       const parsedRoute = data.route.geometry[0].coordinates.map(
-        (coord) => [coord.longitude, coord.latitude] as [number, number]
+        (coord) => [coord.latitude, coord.longitude] as [number, number]
       );
 
       setTrip({

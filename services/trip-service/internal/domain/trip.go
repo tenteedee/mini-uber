@@ -3,8 +3,11 @@ package domain
 import (
 	"context"
 
+	pb "github.com/tenteedee/mini-uber/shared/proto/trip"
 	"github.com/tenteedee/mini-uber/shared/types"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+
+	tripTypes "github.com/tenteedee/mini-uber/services/trip-service/pkg/types"
 )
 
 type TripModel struct {
@@ -12,13 +15,19 @@ type TripModel struct {
 	UserID   string
 	Status   string
 	RideFare *RideFareModel
+	Driver   *pb.TripDriver
 }
 
 type TripRepository interface {
-	CreateTrip(ctx context.Context, trip TripModel) (*TripModel, error)
+	CreateTrip(ctx context.Context, trip *TripModel) (*TripModel, error)
+	SaveRideFare(ctx context.Context, fare *RideFareModel) error
+	GetRideFareByID(ctx context.Context, fareID string) (*RideFareModel, error)
 }
 
 type TripService interface {
 	CreateTrip(ctx context.Context, fare *RideFareModel) (*TripModel, error)
-	GetRoute(ctx context.Context, pickup *types.Coordinate, destination *types.Coordinate) (*types.OsrmApiResponse, error)
+	GetTripRoute(ctx context.Context, pickup *types.Coordinate, destination *types.Coordinate) (*tripTypes.OsrmApiResponse, error)
+	EstimatePackagesPriceWithRoutes(route *tripTypes.OsrmApiResponse) []*RideFareModel
+	GenerateTripFares(ctx context.Context, fares []*RideFareModel, userId string, route *tripTypes.OsrmApiResponse) ([]*RideFareModel, error)
+	GetAndValidateFare(ctx context.Context, fareID string, userID string) (*RideFareModel, error)
 }
