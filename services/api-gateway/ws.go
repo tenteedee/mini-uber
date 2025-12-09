@@ -5,8 +5,9 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
+	grpcclients "github.com/tenteedee/mini-uber/services/api-gateway/grpc_clients"
 	"github.com/tenteedee/mini-uber/shared/contracts"
-	"github.com/tenteedee/mini-uber/shared/util"
+	pb "github.com/tenteedee/mini-uber/shared/proto/driver"
 )
 
 var upgrader = websocket.Upgrader{
@@ -57,29 +58,44 @@ func handleDriverWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	packageSlug := r.URL.Query().Get("packageSlug")
-	if userId == "" {
+	if packageSlug == "" {
 		log.Printf("Missing packageSlug in query parameters")
 		conn.Close()
 		return
 	}
 
-	type Driver struct {
-		Id             string `json:"id"`
-		Name           string `json:"name"`
-		ProfilePicture string `json:"profilePicture"`
-		CarPlate       string `json:"carPlate"`
-		PackageSlug    string `json:"packageSlug"`
+	driverService, err := grpcclients.NewDriverServiceClient()
+	if err != nil {
+		log.Printf("Failed to create driver service client: %v", err)
+		return
+	}
+	defer driverService.Close()
+
+	// ensure driver is unregistered when the connection is closed
+	defer func() {
+		_, err := driverService.Client.UnregisterDriver(r.Context(), &pb.RegisterDriverRequest{
+			DriverId:    userId,
+			PackageSlug: packageSlug,
+		})
+		if err != nil {
+			log.Printf("Failed to unregister driver: %v", err)
+		}
+
+		log.Printf("Driver %s disconnected", userId)
+	}()
+
+	driverData, err := driverService.Client.RegisterDriver(r.Context(), &pb.RegisterDriverRequest{
+		DriverId:    userId,
+		PackageSlug: packageSlug,
+	})
+	if err != nil {
+		log.Printf("Failed to register driver: %v", err)
+		return
 	}
 
 	msg := contracts.WSMessage{
 		Type: "driver.cmd.register",
-		Data: Driver{
-			Id:             userId,
-			Name:           "John Doe",
-			ProfilePicture: util.GetRandomAvatar(1),
-			CarPlate:       "XYZ-1234",
-			PackageSlug:    packageSlug,
-		},
+		Data: driverData.Driver,
 	}
 
 	if err := conn.WriteJSON(msg); err != nil {

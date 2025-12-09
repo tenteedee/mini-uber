@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: api-gateway
-          image: europe-west1-docker.pkg.dev/{{PROJECT_ID}}/mini-uber/api-gateway
+          image: asia-southeast1-docker.pkg.dev/mini-uber-480618/mini-uber/api-gateway
           ports:
             - containerPort: 8081
           env:
