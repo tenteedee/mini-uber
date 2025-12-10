@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/tenteedee/mini-uber/services/trip-service/internal/domain"
+	"github.com/tenteedee/mini-uber/services/trip-service/internal/infrastructure/events"
 	pb "github.com/tenteedee/mini-uber/shared/proto/trip"
 	"github.com/tenteedee/mini-uber/shared/types"
 	"google.golang.org/grpc"
@@ -14,12 +15,14 @@ import (
 
 type gRPCHandler struct {
 	pb.UnimplementedTripServiceServer
-	service domain.TripService
+	service   domain.TripService
+	publisher *events.TripEventPublisher
 }
 
-func NewgRPCHandler(server *grpc.Server, service domain.TripService) *gRPCHandler {
+func NewgRPCHandler(server *grpc.Server, service domain.TripService, publisher *events.TripEventPublisher) *gRPCHandler {
 	handler := &gRPCHandler{
-		service: service,
+		service:   service,
+		publisher: publisher,
 	}
 
 	pb.RegisterTripServiceServer(server, handler)
@@ -82,6 +85,11 @@ func (h *gRPCHandler) CreateTrip(ctx context.Context, req *pb.CreateTripRequest)
 	if err != nil {
 		log.Println(err)
 		return nil, status.Errorf(codes.Internal, "failed to create trip: %v", err)
+	}
+
+	if err := h.publisher.PublishTripCreatedEvent(ctx); err != nil {
+		log.Println(err)
+		return nil, status.Errorf(codes.Internal, "failed to publish trip created event: %v", err)
 	}
 
 	return &pb.CreateTripResponse{

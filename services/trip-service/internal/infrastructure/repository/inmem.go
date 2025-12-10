@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/tenteedee/mini-uber/services/trip-service/internal/domain"
 )
@@ -30,6 +31,7 @@ func (r *inmemRepository) SaveRideFare(ctx context.Context, fare *domain.RideFar
 }
 
 func (r *inmemRepository) GetRideFareByID(ctx context.Context, fareID string) (*domain.RideFareModel, error) {
+	log.Println(r.rideFares)
 	fare, exists := r.rideFares[fareID]
 	if !exists {
 		return nil, fmt.Errorf("fare does not exists with ID: %s", fareID)

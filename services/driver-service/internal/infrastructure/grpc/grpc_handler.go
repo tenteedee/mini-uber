@@ -37,5 +37,11 @@ func (h *driverGrpcHandler) RegisterDriver(ctx context.Context, req *pb.Register
 }
 
 func (h *driverGrpcHandler) UnregisterDriver(ctx context.Context, req *pb.RegisterDriverRequest) (*pb.RegisterDriverResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UnregisterDriver not implemented")
+	h.service.UnregisterDriver(req.GetDriverId())
+
+	return &pb.RegisterDriverResponse{
+		Driver: &pb.Driver{
+			Id: req.GetDriverId(),
+		},
+	}, nil
 }
