@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 
+	pbd "github.com/tenteedee/mini-uber/shared/proto/driver"
 	pb "github.com/tenteedee/mini-uber/shared/proto/trip"
 	"github.com/tenteedee/mini-uber/shared/types"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -33,12 +34,16 @@ type TripRepository interface {
 	CreateTrip(ctx context.Context, trip *TripModel) (*TripModel, error)
 	SaveRideFare(ctx context.Context, fare *RideFareModel) error
 	GetRideFareByID(ctx context.Context, fareID string) (*RideFareModel, error)
+	GetTripByID(ctx context.Context, id string) (*TripModel, error)
+	UpdateTrip(ctx context.Context, tripID string, status string, driver *pbd.Driver) error
 }
 
 type TripService interface {
 	CreateTrip(ctx context.Context, fare *RideFareModel) (*TripModel, error)
-	GetTripRoute(ctx context.Context, pickup *types.Coordinate, destination *types.Coordinate) (*tripTypes.OsrmApiResponse, error)
+	GetTripRoute(ctx context.Context, pickup *types.Coordinate, destination *types.Coordinate, useOSRMApi bool) (*tripTypes.OsrmApiResponse, error)
 	EstimatePackagesPriceWithRoutes(route *tripTypes.OsrmApiResponse) []*RideFareModel
 	GenerateTripFares(ctx context.Context, fares []*RideFareModel, userId string, route *tripTypes.OsrmApiResponse) ([]*RideFareModel, error)
 	GetAndValidateFare(ctx context.Context, fareID string, userID string) (*RideFareModel, error)
+	GetTripById(ctx context.Context, tripId string) (*TripModel, error)
+	UpdateTrip(ctx context.Context, tripId string, status string, driver *pbd.Driver) error
 }

@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 
 	"github.com/tenteedee/mini-uber/services/trip-service/internal/domain"
 	tripTypes "github.com/tenteedee/mini-uber/services/trip-service/pkg/types"
+	pbd "github.com/tenteedee/mini-uber/shared/proto/driver"
 	"github.com/tenteedee/mini-uber/shared/proto/trip"
 	"github.com/tenteedee/mini-uber/shared/types"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -36,9 +38,38 @@ func (s *service) CreateTrip(ctx context.Context, fare *domain.RideFareModel) (*
 
 }
 
-func (s *service) GetTripRoute(ctx context.Context, pickup *types.Coordinate, destination *types.Coordinate) (*tripTypes.OsrmApiResponse, error) {
+func (s *service) GetTripRoute(ctx context.Context, pickup *types.Coordinate, destination *types.Coordinate, useOSRMApi bool) (*tripTypes.OsrmApiResponse, error) {
+	if !useOSRMApi {
+		// Return a simple mock response in case we don't want to rely on an external API
+		return &tripTypes.OsrmApiResponse{
+			Routes: []struct {
+				Distance float64 `json:"distance"`
+				Duration float64 `json:"duration"`
+				Geometry struct {
+					Coordinates [][]float64 `json:"coordinates"`
+				} `json:"geometry"`
+			}{
+				{
+					Distance: 5.0, // 5km
+					Duration: 600, // 10 minutes
+					Geometry: struct {
+						Coordinates [][]float64 `json:"coordinates"`
+					}{
+						Coordinates: [][]float64{
+							{pickup.Latitude, pickup.Longitude},
+							{destination.Latitude, destination.Longitude},
+						},
+					},
+				},
+			},
+		}, nil
+	}
+
+	baseURL := "http://router.project-osrm.org"
+
 	url := fmt.Sprintf(
-		"http://router.project-osrm.org/route/v1/driving/%f,%f;%f,%f?overview=full&geometries=geojson",
+		"%s/route/v1/driving/%f,%f;%f,%f?overview=full&geometries=geojson",
+		baseURL,
 		pickup.Longitude, pickup.Latitude,
 		destination.Longitude, destination.Latitude,
 	)
@@ -53,6 +84,9 @@ func (s *service) GetTripRoute(ctx context.Context, pickup *types.Coordinate, de
 	if err != nil {
 		return nil, fmt.Errorf("failed to read OSRM API response body: %v", err)
 	}
+
+	log.Println("OSRM Status:", response.StatusCode)
+	log.Println("OSRM Body:", string(body))
 
 	var routeResponse tripTypes.OsrmApiResponse
 
@@ -146,4 +180,12 @@ func getBaseFares() []*domain.RideFareModel {
 			TotalPriceInCents: 400,
 		},
 	}
+}
+
+func (s *service) GetTripById(ctx context.Context, tripId string) (*domain.TripModel, error) {
+	return s.repo.GetTripByID(ctx, tripId)
+}
+
+func (s *service) UpdateTrip(ctx context.Context, tripId string, status string, driver *pbd.Driver) error {
+	return s.repo.UpdateTrip(ctx, tripId, status, driver)
 }

@@ -13,15 +13,15 @@ import { RoutingControl } from "./RoutingControl";
 import { DriverCard } from "./DriverCard";
 import { TripEvents } from "../contracts";
 
-// const START_LOCATION: Coordinate = {
-//   latitude: 21.03548448971169,
-//   longitude: 105.83421353030694,
-// };
-
 const START_LOCATION: Coordinate = {
-  latitude: 37.7749,
-  longitude: -122.4194,
+  latitude: 21.03640778235776,
+  longitude: 105.83164873234605,
 };
+
+// const START_LOCATION: Coordinate = {
+//   latitude: 37.7749,
+//   longitude: -122.4194,
+// };
 
 const driverMarker = new L.Icon({
   iconUrl: "https://www.svgrepo.com/show/25407/car.svg",
@@ -115,7 +115,7 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
   const parsedRoute = useMemo(
     () =>
       requestedTrip?.route?.geometry[0]?.coordinates.map(
-        (coord) => [coord?.longitude, coord?.latitude] as [number, number]
+        (coord) => [coord?.latitude, coord?.longitude] as [number, number]
       ),
     [requestedTrip]
   );
@@ -166,7 +166,7 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
 
           {startLocation && (
             <Marker
-              position={[startLocation.longitude, startLocation.latitude]}
+              position={[riderLocation.latitude, riderLocation.longitude]}
               icon={startLocationMarker}
             >
               <Popup>Start Location</Popup>
@@ -175,7 +175,7 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
 
           {destination && (
             <Marker
-              position={[destination.longitude, destination.latitude]}
+              position={[riderLocation.latitude, riderLocation.longitude]}
               icon={destinationMarker}
             >
               <Popup>Destination</Popup>

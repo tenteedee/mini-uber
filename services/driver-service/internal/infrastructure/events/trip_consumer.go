@@ -4,19 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"math/rand"
 
 	"github.com/rabbitmq/amqp091-go"
-	"github.com/tenteedee/mini-uber/services/driver-service/internal/service"
+	"github.com/tenteedee/mini-uber/services/driver-service/internal/domain"
 	"github.com/tenteedee/mini-uber/shared/contracts"
 	"github.com/tenteedee/mini-uber/shared/messaging"
 )
 
 type TripEventConsumer struct {
 	rabbitmq *messaging.RabbitMQ
-	service  *service.Service
+	service  domain.DriverService
 }
 
-func NewTripEventConsumer(rabbitmq *messaging.RabbitMQ, service *service.Service) *TripEventConsumer {
+func NewTripEventConsumer(rabbitmq *messaging.RabbitMQ, service domain.DriverService) *TripEventConsumer {
 	return &TripEventConsumer{
 		rabbitmq: rabbitmq,
 		service:  service,
@@ -47,7 +48,7 @@ func (c *TripEventConsumer) Listen() error {
 				return c.handleFindAndNotifyDrivers(ctx, payload)
 			}
 
-			log.Println("unknown trip event")
+			log.Printf("unknown trip event: %+v", payload)
 
 			return nil
 		})
@@ -73,7 +74,9 @@ func (c *TripEventConsumer) handleFindAndNotifyDrivers(ctx context.Context, payl
 		return nil
 	}
 
-	driver := suitableDrivers[0]
+	randomIndex := rand.Intn(len(suitableDrivers))
+
+	driver := suitableDrivers[randomIndex]
 
 	marshalledEvent, err := json.Marshal(payload)
 	if err != nil {

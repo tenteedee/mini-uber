@@ -10,10 +10,12 @@ import (
 	"time"
 
 	"github.com/tenteedee/mini-uber/shared/env"
+	"github.com/tenteedee/mini-uber/shared/messaging"
 )
 
 var (
-	httpAddr = env.GetString("HTTP_ADDR", ":8081")
+	httpAddr    = env.GetString("HTTP_ADDR", ":8081")
+	rabbitmqURI = env.GetString("RABBITMQ_URI", "amqp://guest:guest@localhost:5672/")
 )
 
 func main() {
@@ -21,10 +23,25 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	// Initialize RabbitMQ connection
+	rabbitmq, err := messaging.NewRabbitMQ(rabbitmqURI)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rabbitmq.Close()
+	log.Println("starting RabbitMQ connection on API Gateway")
+
+	// initialize endpoints
 	mux.HandleFunc("POST /trip/preview", enableCORS(handleTripPreview))
 	mux.HandleFunc("POST /trip/start", enableCORS(handleTripStart))
-	mux.HandleFunc("/ws/drivers", handleDriverWebSocket)
-	mux.HandleFunc("/ws/riders", handleRidersWebSocket)
+
+	mux.HandleFunc("/ws/drivers", func(w http.ResponseWriter, r *http.Request) {
+		handleDriverWebSocket(w, r, rabbitmq)
+	})
+
+	mux.HandleFunc("/ws/riders", func(w http.ResponseWriter, r *http.Request) {
+		handleRidersWebSocket(w, r, rabbitmq)
+	})
 
 	server := &http.Server{
 		Addr:    httpAddr,
@@ -38,6 +55,7 @@ func main() {
 
 	}()
 
+	// Handle OS signals for graceful shutdown
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 

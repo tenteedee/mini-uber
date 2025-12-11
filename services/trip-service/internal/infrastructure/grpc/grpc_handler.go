@@ -47,6 +47,7 @@ func (h *gRPCHandler) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 	route, err := h.service.GetTripRoute(ctx,
 		pickupCoordinates,
 		destinationCoordinates,
+		true,
 	)
 	if err != nil {
 		log.Println(err)
