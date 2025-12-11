@@ -2,7 +2,10 @@ package events
 
 import (
 	"context"
+	"encoding/json"
 
+	"github.com/tenteedee/mini-uber/services/trip-service/internal/domain"
+	"github.com/tenteedee/mini-uber/shared/contracts"
 	"github.com/tenteedee/mini-uber/shared/messaging"
 )
 
@@ -16,7 +19,23 @@ func NewTripEventPublisher(rabbitmq *messaging.RabbitMQ) *TripEventPublisher {
 	}
 }
 
-func (p *TripEventPublisher) PublishTripCreatedEvent(ctx context.Context) error {
-	return p.rabbitmq.PublishMessage(ctx, "hello", "hello world")
+func (p *TripEventPublisher) PublishTripCreatedEvent(ctx context.Context, trip *domain.TripModel) error {
+	payload := messaging.TripEventData{
+		Trip: trip.ToProto(),
+	}
+
+	tripEventJSON, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	return p.rabbitmq.PublishMessage(
+		ctx,
+		contracts.TripEventCreated,
+		contracts.AmqpMessage{
+			OwnerID: trip.UserID,
+			Data:    tripEventJSON,
+		},
+	)
 
 }

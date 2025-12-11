@@ -51,7 +51,7 @@ func main() {
 	grpc.NewGrpcHandler(grpcServer, driverService)
 
 	// initialize queue consumer
-	consumer := events.NewTripEventConsumer(rabbitmq)
+	consumer := events.NewTripEventConsumer(rabbitmq, driverService)
 	go func() {
 		if err := consumer.Listen(); err != nil {
 			log.Fatalf("failed to listen to the message: %v", err)
