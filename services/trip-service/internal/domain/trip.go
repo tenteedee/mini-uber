@@ -13,10 +13,10 @@ import (
 
 type TripModel struct {
 	ID       primitive.ObjectID `bson:"_id,omitempty"`
-	UserID   string
-	Status   string
-	RideFare *RideFareModel
-	Driver   *pb.TripDriver
+	UserID   string             `bson:"userId"`
+	Status   string             `bson:"status"`
+	RideFare *RideFareModel     `bson:"rideFare"`
+	Driver   *pb.TripDriver     `bson:"driver"`
 }
 
 func (t *TripModel) ToProto() *pb.Trip {

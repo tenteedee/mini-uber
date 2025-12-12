@@ -12,6 +12,7 @@ import (
 	"github.com/tenteedee/mini-uber/services/trip-service/internal/infrastructure/grpc"
 	"github.com/tenteedee/mini-uber/services/trip-service/internal/infrastructure/repository"
 	"github.com/tenteedee/mini-uber/services/trip-service/internal/service"
+	"github.com/tenteedee/mini-uber/shared/db"
 	"github.com/tenteedee/mini-uber/shared/env"
 	"github.com/tenteedee/mini-uber/shared/messaging"
 	"github.com/tenteedee/mini-uber/shared/tracing"
@@ -37,8 +38,20 @@ func main() {
 	defer shutdown(ctx)
 
 	rabbitmqURI := env.GetString("RABBITMQ_URI", "amqp://guest:guest@localhost:5672/")
-	inmemRepo := repository.NewInmemRepository()
-	tripService := service.NewService(inmemRepo)
+
+	// initialize mongo client
+	mongoClient, err := db.NewMongoClient(ctx, db.NewMongoDefaultConfig())
+	if err != nil {
+		log.Fatalf("Failed to initialize MongoDB, err: %v", err)
+	}
+	defer mongoClient.Disconnect(ctx)
+
+	mongoDb := db.GetDatabase(mongoClient, db.NewMongoDefaultConfig())
+
+	// inmemRepo := repository.NewInmemRepository()
+	// tripService := service.NewService(inmemRepo)
+	mongoDBRepo := repository.NewMongoRepository(mongoDb)
+	tripService := service.NewService(mongoDBRepo)
 
 	// Handle OS signals for graceful shutdown
 	go func() {
