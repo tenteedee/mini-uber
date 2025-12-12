@@ -8,6 +8,7 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/tenteedee/mini-uber/shared/contracts"
+	"github.com/tenteedee/mini-uber/shared/tracing"
 )
 
 const (
@@ -52,23 +53,14 @@ func (r *RabbitMQ) PublishMessage(ctx context.Context, routingKey string, messag
 		return fmt.Errorf("failed to marshal message: %v", err)
 	}
 
-	err = r.Channel.PublishWithContext(
-		ctx,
-		TripExchange, // exchange
-		routingKey,   // routing key
-		false,        // mandatory
-		false,        // immediate
-		amqp.Publishing{
-			ContentType:  "text/plain",
-			Body:         jsonMessage,
-			DeliveryMode: amqp.Persistent,
-		},
-	)
-	if err != nil {
-		log.Printf("error publishing: %v", err)
+	msg := amqp.Publishing{
+		DeliveryMode: amqp.Persistent,
+		ContentType:  "application/json",
+		Body:         jsonMessage,
 	}
 
-	return err
+	return tracing.TracedPublisher(ctx, TripExchange, routingKey, msg, r.publish)
+
 }
 
 type MessageHandler func(context.Context, amqp.Delivery) error
@@ -98,25 +90,42 @@ func (r *RabbitMQ) ConsumeMessages(queueName string, handler MessageHandler) err
 
 	go func() {
 		for msg := range msgs {
-			log.Printf("receive message: %s", msg.Body)
+			if err := tracing.TracedConsumer(msg, func(ctx context.Context, d amqp.Delivery) error {
+				log.Printf("receive message: %s", msg.Body)
 
-			if err := handler(context.Background(), msg); err != nil {
-				log.Printf("failed to handle message: %v", err)
+				if err := handler(context.Background(), msg); err != nil {
+					log.Printf("failed to handle message: %v", err)
 
-				if nackErr := msg.Nack(false, false); nackErr != nil {
-					log.Printf("failed to Nack message: %v", nackErr)
+					if nackErr := msg.Nack(false, false); nackErr != nil {
+						log.Printf("failed to Nack message: %v", nackErr)
+					}
+
+					return err
 				}
 
-				continue
-			}
+				if ackErr := msg.Ack(false); ackErr != nil {
+					log.Printf("Failed to Ack message: %v. Message body: %s", ackErr, msg.Body)
+				}
 
-			if ackErr := msg.Ack(false); ackErr != nil {
-				log.Printf("ERROR: Failed to Ack message: %v. Message body: %s", ackErr, msg.Body)
+				return nil
+			}); err != nil {
+				log.Printf("error processing message: %v", err)
 			}
 		}
 	}()
 
 	return nil
+}
+
+func (r *RabbitMQ) publish(ctx context.Context, exchange, routingKey string, msg amqp.Publishing) error {
+	return r.Channel.PublishWithContext(
+		ctx,
+		exchange,   // exchange
+		routingKey, // routing key
+		false,      // mandatory
+		false,      // immediate
+		msg,
+	)
 }
 
 func (r *RabbitMQ) setupExchangesAndQueues() error {

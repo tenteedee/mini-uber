@@ -4,6 +4,7 @@ import (
 	"os"
 
 	pb "github.com/tenteedee/mini-uber/shared/proto/trip"
+	"github.com/tenteedee/mini-uber/shared/tracing"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -19,9 +20,12 @@ func NewTripServiceClient() (*TripServiceClient, error) {
 		tripServiceURL = "trip-service:9093"
 	}
 
-	conn, err := grpc.NewClient(tripServiceURL, grpc.WithTransportCredentials(
-		insecure.NewCredentials(),
-	))
+	dialOptions := append(
+		tracing.DialOptionsWithTracing(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+
+	conn, err := grpc.NewClient(tripServiceURL, dialOptions...)
 	if err != nil {
 		return nil, err
 	}

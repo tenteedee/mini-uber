@@ -60,7 +60,7 @@ func main() {
 	log.Println("starting RabbitMQ connection on Driver service")
 
 	// Initialize and start gRPC server
-	grpcServer := grpcserver.NewServer()
+	grpcServer := grpcserver.NewServer(tracing.WithTracingInterceptors()...)
 	grpc.NewGrpcHandler(grpcServer, driverService)
 
 	// initialize queue consumer
