@@ -11,6 +11,7 @@ import (
 
 	"github.com/tenteedee/mini-uber/shared/env"
 	"github.com/tenteedee/mini-uber/shared/messaging"
+	"github.com/tenteedee/mini-uber/shared/tracing"
 )
 
 var (
@@ -20,6 +21,21 @@ var (
 
 func main() {
 	log.Println("Starting API Gateway")
+
+	// initialize tracing
+	tracerCfg := tracing.Config{
+		ServiceName:    "api-gateway",
+		Environment:    env.GetString("ENVIRONMENT", "development"),
+		JaegerEndpoint: env.GetString("JAEGER_ENDPOINT", "http://jaeger:14268/api/traces"),
+	}
+	shutdown, err := tracing.InitTracer(tracerCfg)
+	if err != nil {
+		log.Fatalf("failed to initialize tracer: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	defer shutdown(ctx)
 
 	mux := http.NewServeMux()
 
@@ -34,13 +50,14 @@ func main() {
 	// initialize endpoints
 	mux.HandleFunc("POST /trip/preview", enableCORS(handleTripPreview))
 	mux.HandleFunc("POST /trip/start", enableCORS(handleTripStart))
-
 	mux.HandleFunc("/ws/drivers", func(w http.ResponseWriter, r *http.Request) {
 		handleDriverWebSocket(w, r, rabbitmq)
 	})
-
 	mux.HandleFunc("/ws/riders", func(w http.ResponseWriter, r *http.Request) {
 		handleRidersWebSocket(w, r, rabbitmq)
+	})
+	mux.HandleFunc("/webhook/stripe", func(w http.ResponseWriter, r *http.Request) {
+		handleStripeWebhook(w, r, rabbitmq)
 	})
 
 	server := &http.Server{
@@ -56,13 +73,13 @@ func main() {
 	}()
 
 	// Handle OS signals for graceful shutdown
-	shutdown := make(chan os.Signal, 1)
-	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
+	gfshutdown := make(chan os.Signal, 1)
+	signal.Notify(gfshutdown, os.Interrupt, syscall.SIGTERM)
 
 	select {
 	case err := <-serverError:
 		log.Fatalf("could not start server: %v", err)
-	case sig := <-shutdown:
+	case sig := <-gfshutdown:
 		log.Printf("starting shutdown: %v", sig)
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()

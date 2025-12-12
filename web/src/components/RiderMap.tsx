@@ -52,7 +52,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
   const [selectedCarPackage] = useState<RouteFare | null>(null);
   const [destination, setDestination] = useState<[number, number] | null>(null);
   const mapRef = useRef<L.Map>(null);
-  const userID = useMemo(() => crypto.randomUUID(), []);
+  const userId = useMemo(() => crypto.randomUUID(), []);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const location = {
@@ -72,12 +72,12 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
     assignedDriver,
     paymentSession,
     resetTripStatus,
-  } = useRiderStreamConnection(location, userID);
+  } = useRiderStreamConnection(location, userId);
 
   console.log(tripStatus);
 
   const handleMapClick = async (e: L.LeafletMouseEvent) => {
-    if (trip?.tripID) {
+    if (trip?.tripId) {
       return;
     }
 
@@ -99,7 +99,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
       );
 
       setTrip({
-        tripID: "",
+        tripId: "",
         route: parsedRoute,
         rideFares: data.rideFares,
         distance: data.route.distance,
@@ -116,7 +116,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
   ): Promise<HTTPTripPreviewResponse> => {
     const { pickup, destination } = props;
     const payload = {
-      userID: userID,
+      userId: userId,
       pickup: {
         latitude: pickup[0],
         longitude: pickup[1],
@@ -139,8 +139,8 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
 
   const handleStartTrip = async (fare: RouteFare) => {
     const payload = {
-      rideFareID: fare.id,
-      userID: userID,
+      rideFareId: fare.id,
+      userId: userId,
     } as HTTPTripStartRequestPayload;
 
     if (!fare.id) {
@@ -159,7 +159,7 @@ export default function RiderMap({ onRouteSelected }: RiderMapProps) {
         (prev) =>
           ({
             ...prev,
-            tripID: data.tripID,
+            tripId: data.tripId,
           } as TripPreview)
       );
     }

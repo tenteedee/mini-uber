@@ -1,23 +1,28 @@
-import { Trip } from "../types"
-import { TripOverviewCard } from "./TripOverviewCard"
-import { Button } from "./ui/button"
-import { TripEvents } from "../contracts"
+import { Trip } from "../types";
+import { TripOverviewCard } from "./TripOverviewCard";
+import { Button } from "./ui/button";
+import { TripEvents } from "../contracts";
 
 interface DriverTripOverviewProps {
-  trip?: Trip | null,
-  status?: TripEvents | null,
-  onAcceptTrip?: () => void,
-  onDeclineTrip?: () => void
+  trip?: Trip | null;
+  status?: TripEvents | null;
+  onAcceptTrip?: () => void;
+  onDeclineTrip?: () => void;
 }
 
-export const DriverTripOverview = ({ trip, status, onAcceptTrip, onDeclineTrip }: DriverTripOverviewProps) => {
+export const DriverTripOverview = ({
+  trip,
+  status,
+  onAcceptTrip,
+  onDeclineTrip,
+}: DriverTripOverviewProps) => {
   if (!trip) {
     return (
       <TripOverviewCard
         title="Waiting for a rider..."
         description="Waiting for a rider to request a trip..."
       />
-    )
+    );
   }
 
   if (status === TripEvents.DriverTripRequest) {
@@ -28,10 +33,12 @@ export const DriverTripOverview = ({ trip, status, onAcceptTrip, onDeclineTrip }
       >
         <div className="flex flex-col gap-2">
           <Button onClick={onAcceptTrip}>Accept trip</Button>
-          <Button variant="outline" onClick={onDeclineTrip}>Decline trip</Button>
+          <Button variant="outline" onClick={onDeclineTrip}>
+            Decline trip
+          </Button>
         </div>
       </TripOverviewCard>
-    )
+    );
   }
 
   if (status === TripEvents.DriverTripAccept) {
@@ -46,13 +53,13 @@ export const DriverTripOverview = ({ trip, status, onAcceptTrip, onDeclineTrip }
             <p className="text-sm text-gray-500">
               Trip ID: {trip.id}
               <br />
-              Rider ID: {trip.userID}
+              Rider ID: {trip.userId}
             </p>
           </div>
         </div>
       </TripOverviewCard>
-    )
+    );
   }
 
-  return null
-}
+  return null;
+};

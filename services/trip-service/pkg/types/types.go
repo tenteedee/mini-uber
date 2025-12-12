@@ -2,14 +2,27 @@ package types
 
 import pb "github.com/tenteedee/mini-uber/shared/proto/trip"
 
+// type OsrmApiResponse struct {
+// 	Routes []struct {
+// 		Distance float64 `json:"distance"`
+// 		Duration float64 `json:"duration"`
+// 		Geometry struct {
+// 			Coordinates [][]float64 `json:"coordinates"`
+// 		} `json:"geometry"`
+// 	}
+// }
+
 type OsrmApiResponse struct {
 	Routes []struct {
 		Distance float64 `json:"distance"`
 		Duration float64 `json:"duration"`
 		Geometry struct {
 			Coordinates [][]float64 `json:"coordinates"`
+			Type        string      `json:"type"`
 		} `json:"geometry"`
-	}
+	} `json:"routes"`
+
+	Code string `json:"code"`
 }
 
 func (o *OsrmApiResponse) ToProto() *pb.Route {

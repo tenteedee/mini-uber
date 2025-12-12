@@ -13,17 +13,30 @@ import (
 	"github.com/tenteedee/mini-uber/services/driver-service/internal/service"
 	"github.com/tenteedee/mini-uber/shared/env"
 	"github.com/tenteedee/mini-uber/shared/messaging"
+	"github.com/tenteedee/mini-uber/shared/tracing"
 	grpcserver "google.golang.org/grpc"
 )
 
 var GrpcAddr = ":9092"
 
 func main() {
-	rabbitmqURI := env.GetString("RABBITMQ_URI", "amqp://guest:guest@localhost:5672/")
-	driverService := service.NewService()
+	// initialize tracing
+	tracerCfg := tracing.Config{
+		ServiceName:    "driver-service",
+		Environment:    env.GetString("ENVIRONMENT", "development"),
+		JaegerEndpoint: env.GetString("JAEGER_ENDPOINT", "http://jaeger:14268/api/traces"),
+	}
+	shutdown, err := tracing.InitTracer(tracerCfg)
+	if err != nil {
+		log.Fatalf("failed to initialize tracer: %v", err)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	defer shutdown(ctx)
+
+	rabbitmqURI := env.GetString("RABBITMQ_URI", "amqp://guest:guest@localhost:5672/")
+	driverService := service.NewService()
 
 	// Handle OS signals for graceful shutdown
 	go func() {

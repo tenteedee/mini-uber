@@ -44,7 +44,7 @@ const destinationMarker = new L.Icon({
 
 export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
   const mapRef = useRef<L.Map>(null);
-  const userID = useMemo(() => crypto.randomUUID(), []);
+  const userId = useMemo(() => crypto.randomUUID(), []);
   const [riderLocation, setRiderLocation] =
     useState<Coordinate>(START_LOCATION);
 
@@ -64,7 +64,7 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
   } = useDriverStreamConnection({
     location: riderLocation,
     geohash: driverGeohash,
-    userID,
+    userId,
     packageSlug,
   });
 
@@ -84,8 +84,8 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
     sendMessage({
       type: TripEvents.DriverTripAccept,
       data: {
-        tripID: requestedTrip.id,
-        riderID: requestedTrip.userID,
+        tripId: requestedTrip.id,
+        riderId: requestedTrip.userId,
         driver: driver,
       },
     });
@@ -102,8 +102,8 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
     sendMessage({
       type: TripEvents.DriverTripDecline,
       data: {
-        tripID: requestedTrip.id,
-        riderID: requestedTrip.userID,
+        tripId: requestedTrip.id,
+        riderId: requestedTrip.userId,
         driver: driver,
       },
     });
@@ -153,12 +153,12 @@ export const DriverMap = ({ packageSlug }: { packageSlug: CarPackageSlug }) => {
           />
 
           <Marker
-            key={userID}
+            key={userId}
             position={[riderLocation.latitude, riderLocation.longitude]}
             icon={driverMarker}
           >
             <Popup>
-              Driver ID: {userID}
+              Driver ID: {userId}
               <br />
               Geohash: {driverGeohash}
             </Popup>

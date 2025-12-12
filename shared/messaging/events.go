@@ -11,6 +11,9 @@ const (
 	DriverTripResponseQueue          = "driver_trip_response"
 	NotifyDriversNoDriversFoundQueue = "notify_drivers_no_drivers_found"
 	NotifyDriverAssignQueue          = "notify_driver_assign"
+	PaymentTripResponseQueue         = "payment_trip_response"
+	NotifyPaymentSessionCreatedQueue = "notify_payment_session_created"
+	NotifyPaymentSuccessQueue        = "payment_success"
 )
 
 type TripEventData struct {
@@ -19,6 +22,27 @@ type TripEventData struct {
 
 type DriverTripResponseData struct {
 	Driver  *pbd.Driver `json:"driver"`
-	TripID  string      `json:"trip_id"`
-	RiderId string      `json:"rider_id"`
+	TripId  string      `json:"tripId"`
+	RiderId string      `json:"riderId"`
+}
+
+type PaymentEventSessionCreatedData struct {
+	TripID    string  `json:"tripId"`
+	SessionID string  `json:"sessionId"`
+	Amount    float64 `json:"amount"`
+	Currency  string  `json:"currency"`
+}
+
+type PaymentTripResponseData struct {
+	TripID   string  `json:"tripId"`
+	UserID   string  `json:"userId"`
+	DriverID string  `json:"driverId"`
+	Amount   float64 `json:"amount"`
+	Currency string  `json:"currency"`
+}
+
+type PaymentStatusUpdateData struct {
+	TripID   string `json:"tripId"`
+	UserID   string `json:"userId"`
+	DriverID string `json:"driverId"`
 }

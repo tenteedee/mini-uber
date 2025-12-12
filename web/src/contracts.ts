@@ -1,6 +1,5 @@
 import { Coordinate, Driver, Route, RouteFare, Trip } from "./types";
 
-
 // These are the endpoints the API Gateway must have for the frontend to work correctly
 export enum BackendEndpoints {
   PREVIEW_TRIP = "/trip/preview",
@@ -34,7 +33,7 @@ export type ServerWsMessage =
   | NoDriversFoundRequest;
 
 // Messages sent from the client to the server via the websocket
-export type ClientWsMessage = DriverResponseToTripResponse
+export type ClientWsMessage = DriverResponseToTripResponse;
 
 interface TripCreatedRequest {
   type: TripEvents.Created;
@@ -55,8 +54,8 @@ interface DriverTripRequest {
 }
 
 export interface PaymentEventSessionCreatedData {
-  tripID: string;
-  sessionID: string;
+  tripId: string;
+  sessionId: string;
   amount: number;
   currency: string;
 }
@@ -79,8 +78,8 @@ interface DriverLocationRequest {
 interface DriverResponseToTripResponse {
   type: TripEvents.DriverTripAccept | TripEvents.DriverTripDecline;
   data: {
-    tripID: string;
-    riderID: string;
+    tripId: string;
+    riderId: string;
     driver: Driver;
   };
 }
@@ -91,12 +90,12 @@ export interface HTTPTripPreviewResponse {
 }
 
 export interface HTTPTripStartRequestPayload {
-  rideFareID: string;
-  userID: string;
+  rideFareId: string;
+  userId: string;
 }
 
 export interface HTTPTripPreviewRequestPayload {
-  userID: string;
+  userId: string;
   pickup: Coordinate;
   destination: Coordinate;
 }
@@ -105,6 +104,8 @@ export function isValidTripEvent(event: string): event is TripEvents {
   return Object.values(TripEvents).includes(event as TripEvents);
 }
 
-export function isValidWsMessage(message: ServerWsMessage): message is ServerWsMessage {
+export function isValidWsMessage(
+  message: ServerWsMessage
+): message is ServerWsMessage {
   return isValidTripEvent(message.type);
 }

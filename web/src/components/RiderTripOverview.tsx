@@ -1,13 +1,17 @@
-import { RouteFare, TripPreview, Driver } from "../types"
-import { DriverList } from "./DriversList"
-import { Card } from "./ui/card"
-import { Button } from "./ui/button"
-import { convertMetersToKilometers, convertSecondsToMinutes } from "../utils/math"
-import { Skeleton } from "./ui/skeleton"
-import { TripOverviewCard } from "./TripOverviewCard"
-import { StripePaymentButton } from "./StripePaymentButton"
-import { DriverCard } from "./DriverCard"
-import { TripEvents, PaymentEventSessionCreatedData } from "../contracts"
+import { RouteFare, TripPreview, Driver } from "../types";
+import { DriverList } from "./DriversList";
+import { Card } from "./ui/card";
+import { Button } from "./ui/button";
+import {
+  convertMetersToKilometers,
+  convertSecondsToMinutes,
+} from "../utils/math";
+import { Skeleton } from "./ui/skeleton";
+import { TripOverviewCard } from "./TripOverviewCard";
+import { StripePaymentButton } from "./StripePaymentButton";
+import { DriverCard } from "./DriverCard";
+import { TripEvents, PaymentEventSessionCreatedData } from "../contracts";
+import { useEffect, useState } from "react";
 
 interface TripOverviewProps {
   trip: TripPreview | null;
@@ -26,13 +30,27 @@ export const RiderTripOverview = ({
   onPackageSelect,
   onCancel,
 }: TripOverviewProps) => {
+  const [delayDone, setDelayDone] = useState(false);
+
+  useEffect(() => {
+    if (status === TripEvents.DriverAssigned) {
+      setDelayDone(false);
+
+      const timer = setTimeout(() => {
+        setDelayDone(true);
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [status]);
+
   if (!trip) {
     return (
       <TripOverviewCard
         title="Start a trip"
         description="Click on the map to set a destination"
       />
-    )
+    );
   }
 
   if (status === TripEvents.PaymentSessionCreated && paymentSession) {
@@ -45,13 +63,15 @@ export const RiderTripOverview = ({
           <DriverCard driver={assignedDriver} />
 
           <div className="text-sm text-gray-500">
-            <p>Amount: {paymentSession.amount} {paymentSession.currency}</p>
-            <p>Trip ID: {paymentSession.tripID}</p>
+            <p>
+              Amount: {paymentSession.amount} {paymentSession.currency}
+            </p>
+            <p>Trip ID: {paymentSession.tripId}</p>
           </div>
           <StripePaymentButton paymentSession={paymentSession} />
         </div>
       </TripOverviewCard>
-    )
+    );
   }
 
   if (status === TripEvents.NoDriversFound) {
@@ -64,10 +84,10 @@ export const RiderTripOverview = ({
           Go back
         </Button>
       </TripOverviewCard>
-    )
+    );
   }
 
-  if (status === TripEvents.DriverAssigned) {
+  if (status === TripEvents.DriverAssigned && !delayDone) {
     return (
       <TripOverviewCard
         title="Driver assigned!"
@@ -80,7 +100,7 @@ export const RiderTripOverview = ({
           Cancel current trip
         </Button>
       </TripOverviewCard>
-    )
+    );
   }
 
   if (status === TripEvents.Completed) {
@@ -93,7 +113,7 @@ export const RiderTripOverview = ({
           Go back
         </Button>
       </TripOverviewCard>
-    )
+    );
   }
 
   if (status === TripEvents.Cancelled) {
@@ -106,14 +126,14 @@ export const RiderTripOverview = ({
           Go back
         </Button>
       </TripOverviewCard>
-    )
+    );
   }
 
   if (status === TripEvents.Created) {
     return (
       <TripOverviewCard
         title="Looking for a driver"
-        description="Your trip is confirmed! We&apos;re matching you with a driver, it should not take long."
+        description="Your trip is confirmed! We're matching you with a driver, it should not take long."
       >
         <div className="flex flex-col space-y-3 justify-center items-center mb-4">
           <Skeleton className="h-[125px] w-[250px] rounded-xl" />
@@ -124,31 +144,34 @@ export const RiderTripOverview = ({
         </div>
 
         <div className="flex flex-col items-center justify-center gap-2">
-          {trip?.duration &&
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Arriving in: {convertSecondsToMinutes(trip?.duration)} at your destination ({convertMetersToKilometers(trip?.distance ?? 0)})</h3>
-          }
+          {trip?.duration && (
+            <h3 className="text-sm font-medium text-gray-700 mb-2">
+              Arriving in: {convertSecondsToMinutes(trip?.duration)} at your
+              destination ({convertMetersToKilometers(trip?.distance ?? 0)})
+            </h3>
+          )}
 
           <Button variant="destructive" className="w-full" onClick={onCancel}>
             Cancel
           </Button>
         </div>
       </TripOverviewCard>
-    )
+    );
   }
 
-  if (trip.rideFares && trip.rideFares.length >= 0 && !trip.tripID) {
+  if (trip.rideFares && trip.rideFares.length >= 0 && !trip.tripId) {
     return (
       <DriverList
         trip={trip}
         onPackageSelect={onPackageSelect}
         onCancel={onCancel}
       />
-    )
+    );
   }
 
   return (
     <Card className="w-full md:max-w-[500px] z-[9999] flex-[0.3]">
       No trip ride fares, please refresh the page
     </Card>
-  )
-}
+  );
+};

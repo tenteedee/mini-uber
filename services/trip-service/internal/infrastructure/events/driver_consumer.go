@@ -45,12 +45,12 @@ func (c *DriverEventConsumer) Listen() error {
 
 			switch msg.RoutingKey {
 			case contracts.DriverCmdTripAccept:
-				if err := c.handleTripAccepted(ctx, payload.TripID, payload.Driver); err != nil {
+				if err := c.handleTripAccepted(ctx, payload.TripId, payload.Driver); err != nil {
 					log.Printf("failed to handle trip accept: %v", err)
 					return err
 				}
 			case contracts.DriverCmdTripDecline:
-				if err := c.handleTripDeclined(ctx, payload.TripID, payload.RiderId); err != nil {
+				if err := c.handleTripDeclined(ctx, payload.TripId, payload.RiderId); err != nil {
 					log.Printf("Failed to handle the trip decline: %v", err)
 					return err
 				}
@@ -101,7 +101,24 @@ func (c *DriverEventConsumer) handleTripAccepted(ctx context.Context, tripId str
 		log.Printf("failed to publish trip driver assigned event: %v", err)
 		return err
 	}
-	// TODO: notify the payment service to start a payment link
+
+	// notify the payment service to start a payment link
+	marshalledPayload, err := json.Marshal(messaging.PaymentTripResponseData{
+		TripID:   tripId,
+		UserID:   trip.UserID,
+		DriverID: driver.Id,
+		Amount:   trip.RideFare.TotalPriceInCents,
+		Currency: "USD",
+	})
+
+	if err := c.rabbitmq.PublishMessage(ctx, contracts.PaymentCmdCreateSession,
+		contracts.AmqpMessage{
+			OwnerID: trip.UserID,
+			Data:    marshalledPayload,
+		},
+	); err != nil {
+		return err
+	}
 	return nil
 }
 

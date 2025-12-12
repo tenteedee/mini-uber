@@ -39,33 +39,9 @@ func (s *service) CreateTrip(ctx context.Context, fare *domain.RideFareModel) (*
 }
 
 func (s *service) GetTripRoute(ctx context.Context, pickup *types.Coordinate, destination *types.Coordinate, useOSRMApi bool) (*tripTypes.OsrmApiResponse, error) {
-	if !useOSRMApi {
-		// Return a simple mock response in case we don't want to rely on an external API
-		return &tripTypes.OsrmApiResponse{
-			Routes: []struct {
-				Distance float64 `json:"distance"`
-				Duration float64 `json:"duration"`
-				Geometry struct {
-					Coordinates [][]float64 `json:"coordinates"`
-				} `json:"geometry"`
-			}{
-				{
-					Distance: 5.0, // 5km
-					Duration: 600, // 10 minutes
-					Geometry: struct {
-						Coordinates [][]float64 `json:"coordinates"`
-					}{
-						Coordinates: [][]float64{
-							{pickup.Latitude, pickup.Longitude},
-							{destination.Latitude, destination.Longitude},
-						},
-					},
-				},
-			},
-		}, nil
-	}
 
-	baseURL := "http://router.project-osrm.org"
+	// baseURL := "http://router.project-osrm.org"
+	baseURL := "https://osrm.selfmadeengineer.com"
 
 	url := fmt.Sprintf(
 		"%s/route/v1/driving/%f,%f;%f,%f?overview=full&geometries=geojson",
